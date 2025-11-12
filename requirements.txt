@@ -1,0 +1,6 @@
+torch==2.5.1
+torchvision==0.20.1
+pillow==11.3.0
+opencv-python==4.10.0.84
+numpy==2.1.2
+spandrel==0.4.1
