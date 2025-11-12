@@ -1,0 +1,42 @@
+# Initialize git repository
+git init
+
+# Create .gitignore file
+nano .gitignore
+```
+
+Copy this into `.gitignore`:
+```
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+models/
+*.pth
+*.pt
+outputs/
+test_images/
+*.jpg
+*.png
+*.jpeg
+*.webp
+
+# OS
+.DS_Store
+Thumbs.db
