@@ -20,18 +20,17 @@ def estimate_vram_usage(width, height, scale, bytes_per_pixel=12):
     # Memory calculation:
     # - Input tensor: width * height * 3 channels * 4 bytes (FP32)
     # - Output tensor: output_width * output_height * 3 * 4
-    # - Intermediate activations: ~3x output size (rough estimate)
+    # - Intermediate activations: ~15x output size (very conservative)
     # - Model weights: ~70MB (relatively small, ignored here)
     
     input_memory = width * height * bytes_per_pixel
     output_memory = output_width * output_height * bytes_per_pixel
-    intermediate_memory = output_memory * 3  # Model's internal layers
+    intermediate_memory = output_memory * 15  # Increased from 8x to 15x
     
     total_bytes = input_memory + output_memory + intermediate_memory
     total_gb = total_bytes / (1024 ** 3)
     
     return total_gb
-
 
 def get_available_vram():
     """Get available VRAM in GB"""
@@ -44,7 +43,7 @@ def get_available_vram():
     return 0, 0
 
 
-def should_tile(width, height, scale, vram_threshold=18):
+def should_tile(width, height, scale, vram_threshold=8):  # Changed from 12 to 8
     """
     Determine if image should be tiled based on size.
     
