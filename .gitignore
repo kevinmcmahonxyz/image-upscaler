@@ -1,42 +1,38 @@
-# Initialize git repository
-git init
-
-# Create .gitignore file
-nano .gitignore
-```
-
-Copy this into `.gitignore`:
-```
 # Python
-venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.py[cod]
+*$py.class
 *.so
-*.egg
-*.egg-info/
-dist/
-build/
+.Python
+venv/
+env/
+ENV/
+.venv
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Project specific
-models/
-*.pth
-*.pt
-outputs/
-test_images/
-*.jpg
-*.png
-*.jpeg
-*.webp
+# Model weights (large files)
+models/*.pth
+models/*.safetensors
+
+# Test outputs
+outputs/*
+test_images/*_x2.jpg
+test_images/*_x4.jpg
+test_images/*_enhanced.jpg
+test_images/*_ultrasharp*
+test_images/*_realesrgan*
+test_images/*_nomos8k*
+test_images/*_swinir*
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
