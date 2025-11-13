@@ -6,12 +6,13 @@ GPU-accelerated image upscaler with multi-model support.
 import argparse
 import torch
 import numpy as np
+import subprocess
+import sys
 from pathlib import Path
 from PIL import Image
 from models import get_model, MODEL_REGISTRY
 from utils import estimate_vram_usage, should_tile, get_available_vram
 import time
-
 
 def tile_process(img_tensor, model, tile_size=512, tile_overlap=32):
     """
@@ -118,17 +119,126 @@ def tensor_to_image(tensor):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Multi-model GPU image upscaler')
-    parser.add_argument('--input', '-i', required=True, help='Input image path')
-    parser.add_argument('--output', '-o', help='Output path (default: auto-generated)')
-    parser.add_argument('--scale', '-s', type=int, choices=[2, 4], help='Scale factor (default: auto-detect)')
-    parser.add_argument('--models', '-m', default='ultrasharp', 
-                        help='Models to use (comma-separated or "all"). Options: ' + ', '.join(MODEL_REGISTRY.keys()))
-    parser.add_argument('--fp16', action='store_true', help='Use FP16 mixed precision')
-    parser.add_argument('--enhance-only', action='store_true', 
-                        help='Enhance quality without changing size (runs through 4x model then resizes back)')
+    parser = argparse.ArgumentParser(
+        prog='img-enhance',
+        description='''
+GPU-Accelerated AI Image Upscaler & Enhancer
+
+Upscale and enhance images using state-of-the-art AI models. This tool uses your
+GPU to intelligently reconstruct details, remove artifacts, and improve image quality
+beyond simple resizing.
+
+Key Features:
+  • Multiple AI models for different use cases (photos, graphics, mixed content)
+  • Smart auto-scaling based on input image size
+  • FP16 support for 2-3x faster processing on compatible models
+  • Tiling system for processing very large images
+  • Enhance-only mode for quality improvement without size change
+        ''',
+        epilog='''
+Examples:
+  Interactive Mode:
+    %(prog)s                                    # Launch guided interactive mode
+    %(prog)s --interactive                      # Same as above
+  
+  Upscale Examples:
+    %(prog)s -i photo.jpg                       # Auto-detect scale, use UltraSharp
+    %(prog)s -i photo.jpg -m nomos8k --fp16     # Use Nomos8k with FP16 acceleration
+    %(prog)s -i small.jpg -s 4 -m all           # 4x upscale with all models for comparison
+    %(prog)s -i image.png -m ultrasharp,swinir  # Compare two specific models
+  
+  Enhance-Only Examples:
+    %(prog)s -i blurry.jpg --enhance-only       # Improve quality, keep original size
+    %(prog)s -i compressed.jpg -m nomos8k --enhance-only --fp16
+  
+Model Descriptions:
+  ultrasharp  - Sharp details, excellent for text/graphics (Fast, FP16 supported)
+  realesrgan  - Balanced results, handles compression well (Fastest, FP16 supported)
+  nomos8k     - Best for high-quality photos, realistic textures (Slow, FP32 only)
+  swinir      - Complex scenes, mixed content types (Medium speed, FP32 only)
+  all         - Run all models for side-by-side comparison
+
+For more information, visit: https://github.com/kevinmcmahonxyz/image-upscaler
+        ''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    
+    # Required arguments
+    required = parser.add_argument_group('required arguments')
+    required.add_argument(
+        '--input', '-i',
+        required=True,
+        metavar='PATH',
+        help='Path to input image file (supports: jpg, png, webp, bmp, tiff)'
+    )
+    
+    # Optional arguments
+    optional = parser.add_argument_group('optional arguments')
+    optional.add_argument(
+        '--output', '-o',
+        metavar='PATH',
+        help='''Output file path. If not specified, automatically generates filename
+in the same directory as input with format: input_MODELNAME_xN.ext
+(e.g., photo_ultrasharp_x4.jpg). For enhance-only mode: input_MODELNAME_enhanced.ext'''
+    )
+    
+    optional.add_argument(
+        '--scale', '-s',
+        type=int,
+        choices=[2, 4],
+        metavar='N',
+        help='''Upscale factor: 2 (double size) or 4 (quadruple size).
+If not specified, automatically detects based on image size:
+  • Images ≥1000px: uses 2x (conservative for large images)
+  • Images <1000px: uses 4x (aggressive for small images)'''
+    )
+    
+    optional.add_argument(
+        '--models', '-m',
+        default='ultrasharp',
+        metavar='MODEL',
+        help='''AI model(s) to use for processing. Options:
+  • ultrasharp  - ESRGAN-based, sharp edges, good for text/graphics
+  • realesrgan  - Original Real-ESRGAN, balanced, handles compression
+  • nomos8k     - DAT architecture, best for photorealistic content
+  • swinir      - Transformer-based, good for complex/mixed scenes
+  • all         - Process with all models for comparison
+Use comma-separated list for multiple models (e.g., ultrasharp,nomos8k).
+Default: ultrasharp'''
+    )
+    
+    optional.add_argument(
+        '--fp16',
+        action='store_true',
+        help='''Enable half-precision (FP16) processing for 2-3x faster performance.
+Compatible with ultrasharp and realesrgan models. Other models will
+automatically fall back to FP32. Reduces VRAM usage by ~50%% with
+minimal quality impact. Recommended for most use cases.'''
+    )
+    
+    optional.add_argument(
+        '--enhance-only',
+        action='store_true',
+        help='''Enhance image quality without changing dimensions. Processes the image
+through a 4x upscaling model, then downsamples back to original size.
+This technique removes blur, compression artifacts, and noise while
+maintaining the same resolution. Ideal for cleaning up large but
+low-quality images. Outputs named: input_MODELNAME_enhanced.ext'''
+    )
+    
+    optional.add_argument(
+        '--interactive', '-I',
+        action='store_true',
+        help='Launch interactive mode with step-by-step prompts (same as running with no arguments)'
+    )
     
     args = parser.parse_args()
+    
+    # Handle interactive mode
+    if args.interactive:
+        script_dir = Path(__file__).parent
+        subprocess.run([sys.executable, str(script_dir / 'interactive.py')])
+        return
     
     # Parse model list
     if args.models.lower() == 'all':

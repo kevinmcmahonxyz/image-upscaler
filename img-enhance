@@ -1,0 +1,31 @@
+#!/bin/bash
+# img-enhance - GPU-accelerated AI image upscaler
+# 
+# Usage:
+#   img-enhance                          # Interactive mode
+#   img-enhance -i photo.jpg -m nomos8k  # Direct mode with arguments
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Activate virtual environment
+if [ -f "$SCRIPT_DIR/venv/bin/activate" ]; then
+    source "$SCRIPT_DIR/venv/bin/activate"
+else
+    echo "Error: Virtual environment not found at $SCRIPT_DIR/venv"
+    exit 1
+fi
+
+# Determine which mode to run
+if [ $# -eq 0 ]; then
+    # No arguments: run interactive mode
+    python "$SCRIPT_DIR/interactive.py"
+elif [ "$1" = "--interactive" ] || [ "$1" = "-I" ]; then
+    # Explicit interactive flag
+    python "$SCRIPT_DIR/interactive.py"
+elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    # Show help from upscale.py
+    python "$SCRIPT_DIR/upscale.py" --help
+else
+    # Pass all arguments to upscale.py
+    python "$SCRIPT_DIR/upscale.py" "$@"
+fi
