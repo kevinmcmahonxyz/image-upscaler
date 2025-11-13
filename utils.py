@@ -43,7 +43,7 @@ def get_available_vram():
     return 0, 0
 
 
-def should_tile(width, height, scale, vram_threshold=8):  # Changed from 12 to 8
+def should_tile(width, height, scale, vram_threshold=8):
     """
     Determine if image should be tiled based on size.
     
